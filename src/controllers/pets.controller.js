@@ -1,19 +1,38 @@
 import PetDTO from "../dto/Pet.dto.js";
 import { petsService } from "../services/index.js"
 import __dirname from "../utils/index.js";
+import CustomError from "../utils/customError.js";
+import { Errors } from "../utils/errors-enum.js";
+import { generatePetErrorInfo } from "../utils/errorCauses.js";
 
 const getAllPets = async(req,res)=>{
     const pets = await petsService.getAll();
     res.send({status:"success",payload:pets})
 }
 
-const createPet = async(req,res)=> {
-    const {name,specie,birthDate} = req.body;
-    if(!name||!specie||!birthDate) return res.status(400).send({status:"error",error:"Incomplete values"})
-    const pet = PetDTO.getPetInputFrom({name,specie,birthDate});
-    const result = await petsService.create(pet);
-    res.send({status:"success",payload:result})
-}
+const createPet = async(req,res,next) => {
+    try {
+        const { name, specie, birthDate } = req.body;
+
+        if (!name || !specie || !birthDate) {
+            CustomError.createError({
+                name: "Pet Creation Error",
+                cause: generatePetErrorInfo(req.body),
+                message: "Faltan campos requeridos para crear la mascota.",
+                code: Errors.PET_CREATION_ERROR
+            });
+        }
+
+        const pet = PetDTO.getPetInputFrom({ name, specie, birthDate });
+        const result = await petsService.create(pet);
+        res.send({ status: "success", payload: result });
+
+    } catch (error) {
+        next(error); 
+    }
+};
+
+
 
 const updatePet = async(req,res) =>{
     const petUpdateBody = req.body;
