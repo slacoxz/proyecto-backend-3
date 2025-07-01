@@ -13,13 +13,23 @@ export const mockingUsers = async (req, res) => {
 };
 
 export const generateData = async (req, res) => {
-  const { users = 0, pets = 0 } = req.body;
+  try {
+    const users = parseInt(req.query.users);
+    const pets = parseInt(req.query.pets);
 
-  const usersData = await generateUsers(Number(users));
-  const petsData = generatePets(Number(pets));
+    if (isNaN(users) || isNaN(pets)) {
+      return res.status(400).send({ status: "error", message: "Parámetros inválidos" });
+    }
 
-  await usersService.insertMany(usersData);
-  await petsService.insertMany(petsData);
+    const fakeUsers = generateUsers(users);
+    const fakePets = generatePets(pets);
 
-  res.send({ status: "success", message: `Se insertaron ${users} usuarios y ${pets} mascotas.` });
-};
+    await usersService.insertMany(fakeUsers);
+    await petsService.insertMany(fakePets);
+
+    res.send({ status: "success", message: `Insertados ${users} usuarios y ${pets} mascotas` });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).send({ status: "error", message: "Error generando los datos" });
+  }
+}
